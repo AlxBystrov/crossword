@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Сетка — конструктор кроссвордов</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16161f;
+    --ink-soft:#43434f;
+    --paper:#faf9f4;
+    --panel:#ffffff;
+    --panel-2:#f1efe7;
+    --line:#16161f;
+    --mark:#ffe24d;
+    --mark-deep:#f3c70b;
+    --good:#1f9d6b;
+    --good-bg:#e3f5ec;
+    --bad:#d6453d;
+    --bad-bg:#fbe6e4;
+    --muted:#8d8d99;
+    --shadow:0 2px 0 var(--ink);
+    --shadow-lift:6px 6px 0 var(--ink);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      linear-gradient(var(--panel-2) 1px,transparent 1px),
+      linear-gradient(90deg,var(--panel-2) 1px,transparent 1px);
+    background-size:28px 28px;
+    background-position:-1px -1px;
+  }
+  .mono{font-family:'Space Mono',ui-monospace,SFMono-Regular,Menlo,monospace;}
+
+  /* ---------- shell ---------- */
+  .wrap{max-width:1120px;margin:0 auto;padding:22px 18px 80px;}
+  header.top{
+    display:flex;align-items:flex-end;justify-content:space-between;
+    gap:18px;flex-wrap:wrap;margin-bottom:26px;
+  }
+  .brand{display:flex;flex-direction:column;gap:2px;}
+  .wordmark{
+    font-family:'Bricolage Grotesque','Inter',sans-serif;
+    font-weight:800;font-size:clamp(30px,5vw,44px);line-height:.95;
+    letter-spacing:-.02em;position:relative;width:max-content;
+  }
+  .wordmark .swipe{
+    position:absolute;left:-4px;right:-6px;bottom:6px;height:.42em;
+    background:var(--mark);z-index:-1;
+    transform:skewX(-9deg) rotate(-1.2deg);
+  }
+  .tagline{font-size:13.5px;color:var(--ink-soft);font-weight:500;letter-spacing:.01em;}
+  .tabs{display:flex;border:2px solid var(--ink);background:var(--panel);box-shadow:var(--shadow);}
+  .tab{
+    appearance:none;border:none;background:transparent;cursor:pointer;
+    font-family:inherit;font-weight:700;font-size:14px;color:var(--ink-soft);
+    padding:9px 18px;letter-spacing:.01em;
+  }
+  .tab + .tab{border-left:2px solid var(--ink);}
+  .tab[aria-selected="true"]{background:var(--ink);color:var(--paper);}
+
+  /* ---------- builder ---------- */
+  .builder{display:grid;grid-template-columns:1.55fr 1fr;gap:22px;align-items:start;}
+  .card{
+    background:var(--panel);border:2px solid var(--ink);box-shadow:var(--shadow-lift);
+    padding:20px;
+  }
+  .card h2{
+    font-family:'Bricolage Grotesque','Inter',sans-serif;font-weight:800;
+    font-size:21px;margin:0 0 4px;letter-spacing:-.01em;
+  }
+  .card .sub{font-size:13px;color:var(--ink-soft);margin:0 0 18px;}
+
+  label.field{display:block;margin-bottom:16px;}
+  label.field > span{
+    display:block;font-size:11px;font-weight:700;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:6px;
+  }
+  input[type=text]{
+    width:100%;font-family:inherit;font-size:15px;color:var(--ink);
+    padding:10px 12px;border:2px solid var(--ink);background:var(--paper);
+  }
+  input[type=text]:focus{outline:3px solid var(--mark);outline-offset:0;}
+
+  .rows-head{
+    display:grid;grid-template-columns:30px 1fr 1.7fr 30px;gap:8px;
+    font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--muted);padding:0 2px 6px;
+  }
+  .row{
+    display:grid;grid-template-columns:30px 1fr 1.7fr 30px;gap:8px;
+    align-items:center;margin-bottom:8px;
+  }
+  .row .num{
+    font-family:'Space Mono',monospace;font-weight:700;font-size:13px;
+    color:var(--ink-soft);text-align:center;
+  }
+  .row input.ans{font-family:'Space Mono',monospace;font-weight:700;letter-spacing:.06em;text-transform:uppercase;}
+  .row input.clue{font-size:14px;}
+  .row .del{
+    appearance:none;border:2px solid var(--ink);background:var(--panel);
+    width:30px;height:34px;cursor:pointer;font-size:16px;line-height:1;color:var(--ink-soft);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .row .del:hover{background:var(--bad-bg);color:var(--bad);border-color:var(--bad);}
+
+  .row-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+  .btn{
+    appearance:none;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;
+    padding:11px 18px;border:2px solid var(--ink);background:var(--panel);color:var(--ink);
+    box-shadow:var(--shadow);transition:transform .04s ease,box-shadow .04s ease;
+  }
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--ink);}
+  .btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--ink);}
+  .btn.primary{background:var(--ink);color:var(--paper);}
+  .btn.accent{background:var(--mark);color:var(--ink);border-color:var(--ink);}
+  .btn.ghost{box-shadow:none;border-color:var(--panel-2);background:var(--panel);}
+  .btn.ghost:hover{border-color:var(--ink);box-shadow:2px 2px 0 var(--ink);}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:var(--shadow);}
+  .btn.small{padding:8px 13px;font-size:13px;}
+
+  .aside h3{
+    font-family:'Bricolage Grotesque','Inter',sans-serif;font-weight:800;font-size:16px;margin:0 0 10px;
+  }
+  .aside ol{margin:0;padding-left:20px;font-size:13.5px;color:var(--ink-soft);}
+  .aside ol li{margin-bottom:9px;}
+  .aside ol li b{color:var(--ink);}
+  .aside .mark-chip{background:var(--mark);padding:0 4px;font-weight:700;color:var(--ink);}
+  .notice{
+    margin-top:16px;font-size:12.5px;color:var(--ink-soft);
+    border-left:3px solid var(--mark-deep);padding:8px 0 8px 12px;background:var(--panel-2);
+  }
+
+  .msg{
+    margin-top:12px;font-size:13px;font-weight:600;padding:10px 12px;
+    border:2px solid var(--bad);background:var(--bad-bg);color:var(--bad);display:none;
+  }
+  .msg.show{display:block;}
+  .msg.warn{border-color:var(--mark-deep);background:#fdf3cf;color:#7a5c00;}
+
+  /* ---------- player ---------- */
+  .player{display:none;}
+  .player.active{display:block;}
+  .builder.hidden{display:none;}
+
+  .play-head{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    flex-wrap:wrap;margin-bottom:18px;
+  }
+  .play-title{
+    font-family:'Bricolage Grotesque','Inter',sans-serif;font-weight:800;
+    font-size:clamp(20px,3.4vw,30px);letter-spacing:-.01em;margin:0;
+  }
+  .progress{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-soft);font-weight:600;}
+  .bar{width:120px;height:9px;border:2px solid var(--ink);background:var(--panel);position:relative;}
+  .bar > i{position:absolute;inset:0;background:var(--mark);width:0%;transition:width .25s ease;}
+  .toolbar{display:flex;gap:9px;flex-wrap:wrap;}
+
+  .play-body{display:grid;grid-template-columns:auto 1fr;gap:26px;align-items:start;}
+
+  .grid-shell{
+    background:var(--panel);border:2px solid var(--ink);box-shadow:var(--shadow-lift);
+    padding:16px;overflow:auto;max-width:100%;
+  }
+  .grid{display:grid;gap:0;width:max-content;margin:0 auto;}
+  .cell{
+    width:var(--cell,42px);height:var(--cell,42px);position:relative;
+    border:none;background:transparent;
+  }
+  .cell.block{background:transparent;}
+  .cell.letter{border:1.5px solid var(--ink);background:var(--paper);}
+  .cell.letter.hl{background:var(--mark);}
+  .cell.letter.cursor{box-shadow:inset 0 0 0 3px var(--ink);background:var(--mark-deep);}
+  .cell .lnum{
+    position:absolute;top:1px;left:2px;font-family:'Space Mono',monospace;
+    font-size:9.5px;line-height:1;color:var(--ink-soft);pointer-events:none;font-weight:700;
+  }
+  .cell input{
+    width:100%;height:100%;border:none;background:transparent;text-align:center;
+    font-family:'Space Mono',monospace;font-weight:700;
+    font-size:calc(var(--cell,42px) * .5);text-transform:uppercase;color:var(--ink);
+    caret-color:transparent;padding:0;cursor:pointer;
+  }
+  .cell input:focus{outline:none;}
+  .cell.letter.good input{color:var(--good);}
+  .cell.letter.good{background:var(--good-bg);}
+  .cell.letter.bad input{color:var(--bad);}
+  .cell.letter.bad{background:var(--bad-bg);}
+  .cell.letter.cursor.good,.cell.letter.cursor.bad{background:var(--mark-deep);}
+
+  .clues{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+  .clue-col h4{
+    font-family:'Bricolage Grotesque','Inter',sans-serif;font-weight:800;font-size:13px;
+    text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px;padding-bottom:6px;
+    border-bottom:2px solid var(--ink);
+  }
+  .clue-col ol{list-style:none;margin:0;padding:0;}
+  .clue-item{
+    display:flex;gap:9px;font-size:13.5px;padding:6px 7px;cursor:pointer;
+    border-radius:3px;align-items:baseline;color:var(--ink-soft);
+  }
+  .clue-item:hover{background:var(--panel-2);}
+  .clue-item.active{background:var(--mark);color:var(--ink);}
+  .clue-item.solved{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--good);}
+  .clue-item .cnum{font-family:'Space Mono',monospace;font-weight:700;color:var(--ink);min-width:18px;}
+  .clue-item.active .cnum{color:var(--ink);}
+
+  /* ---------- share / modal ---------- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(22,22,31,.55);display:none;
+    align-items:center;justify-content:center;padding:20px;z-index:50;
+  }
+  .overlay.open{display:flex;}
+  .modal{
+    background:var(--panel);border:2px solid var(--ink);box-shadow:var(--shadow-lift);
+    max-width:520px;width:100%;padding:24px;position:relative;
+  }
+  .modal h3{font-family:'Bricolage Grotesque','Inter',sans-serif;font-weight:800;font-size:20px;margin:0 0 4px;}
+  .modal .sub{font-size:13px;color:var(--ink-soft);margin:0 0 18px;}
+  .modal .close{
+    position:absolute;top:14px;right:14px;border:2px solid var(--ink);background:var(--panel);
+    width:32px;height:32px;cursor:pointer;font-size:17px;line-height:1;
+  }
+  .share-block{margin-bottom:16px;}
+  .share-block > span{
+    display:block;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--muted);margin-bottom:6px;
+  }
+  .share-row{display:flex;gap:8px;}
+  .share-row input{flex:1;font-family:'Space Mono',monospace;font-size:12px;}
+  .win-emoji{font-size:40px;line-height:1;margin-bottom:6px;}
+
+  /* ---------- responsive ---------- */
+  @media (max-width:880px){
+    .builder{grid-template-columns:1fr;}
+    .play-body{grid-template-columns:1fr;}
+    .grid-shell{order:-1;}
+  }
+  @media (max-width:560px){
+    .rows-head{grid-template-columns:24px 1fr 24px;}
+    .rows-head .col-clue{display:none;}
+    .row{grid-template-columns:24px 1fr 24px;grid-auto-rows:auto;}
+    .row input.clue{grid-column:1 / -1;}
+    .clues{grid-template-columns:1fr;}
+    .toolbar{width:100%;}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important;}
+  }
+
+  /* ---------- footer ---------- */
+  .site-foot{
+    margin-top:46px;padding-top:20px;border-top:2px solid var(--ink);
+    text-align:center;font-size:13px;color:var(--muted);
+  }
+  .site-foot a{
+    color:var(--ink);font-weight:700;text-decoration:none;padding:0 1px;
+    background-image:linear-gradient(var(--mark),var(--mark));
+    background-repeat:no-repeat;background-position:0 92%;background-size:100% .16em;
+    transition:background-size .15s ease;
+  }
+  .site-foot a:hover,
+  .site-foot a:focus-visible{background-size:100% 90%;outline:none;}
+
+  /* ---------- print ---------- */
+  @media print{
+    body{background:#fff;}
+    header.top,.tabs,.toolbar,.progress,.aside,.builder{display:none !important;}
+    .player{display:block !important;}
+    .grid-shell{box-shadow:none;border:1.5px solid #000;}
+    .cell input{color:transparent !important;}
+    .cell.letter{border-color:#000;}
+    .clue-item{color:#000;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="wordmark">Сетка<span class="swipe"></span></div>
+      <div class="tagline">Кроссворды из ваших вопросов</div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-build" aria-selected="true" onclick="showView('builder')">Конструктор</button>
+      <button class="tab" role="tab" id="tab-play" aria-selected="false" onclick="showView('player')">Играть</button>
+    </div>
+  </header>
+
+  <!-- ===================== BUILDER ===================== -->
+  <section class="builder" id="builder">
+    <div class="card">
+      <h2>Соберите свой кроссворд</h2>
+      <p class="sub">Впишите ответы и подсказки к ним. Сетка соберётся сама — слова переплетутся по общим буквам.</p>
+
+      <label class="field">
+        <span>Название</span>
+        <input type="text" id="title-input" placeholder="Например: Ситуационное лидерство">
+      </label>
+
+      <div class="rows-head">
+        <div>№</div><div>Ответ</div><div class="col-clue">Вопрос (подсказка)</div><div></div>
+      </div>
+      <div id="rows"></div>
+
+      <div class="row-actions">
+        <button class="btn ghost small" onclick="addRow()">+ Добавить слово</button>
+        <button class="btn accent" id="build-btn" onclick="onBuild()">Собрать кроссворд →</button>
+      </div>
+
+      <div class="msg" id="builder-msg"></div>
+    </div>
+
+    <aside class="card aside">
+      <h3>Как это работает</h3>
+      <ol>
+        <li>Введите пары <b>ответ + подсказка</b>. Ответы — одним словом, от двух букв.</li>
+        <li>Нажмите <b>«Собрать кроссворд»</b> — откроется интерактивная сетка, в которой можно вписывать буквы.</li>
+        <li>Нажмите <span class="mark-chip">Поделиться</span> — получите ссылку и код, чтобы отправить кроссворд кому угодно.</li>
+      </ol>
+      <div class="notice">
+        Совет: чем больше у ответов общих букв, тем плотнее ляжет сетка. Если слово не пересеклось — попробуйте заменить его на близкое по смыслу.
+      </div>
+    </aside>
+  </section>
+
+  <!-- ===================== PLAYER ===================== -->
+  <section class="player" id="player">
+    <div class="play-head">
+      <h2 class="play-title" id="play-title">Кроссворд</h2>
+      <div class="toolbar">
+        <div class="progress"><span id="progress-text">0 из 0</span><div class="bar"><i id="progress-bar"></i></div></div>
+        <button class="btn ghost small" onclick="checkAll()">Проверить</button>
+        <button class="btn ghost small" onclick="revealWord()">Показать слово</button>
+        <button class="btn ghost small" onclick="resetGrid()">Сбросить</button>
+        <button class="btn primary small" onclick="openShare()">Поделиться</button>
+        <button class="btn ghost small" onclick="window.print()">Печать</button>
+        <button class="btn ghost small" id="edit-btn" onclick="showView('builder')">Изменить</button>
+      </div>
+    </div>
+
+    <div class="play-body">
+      <div class="grid-shell"><div class="grid" id="grid"></div></div>
+      <div class="clues">
+        <div class="clue-col"><h4>По горизонтали</h4><ol id="clues-across"></ol></div>
+        <div class="clue-col"><h4>По вертикали</h4><ol id="clues-down"></ol></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-foot">
+    <a href="https://alxbystrov.github.io" target="_blank" rel="noopener">alxbystrov.github.io</a>
+  </footer>
+</div>
+
+<!-- ===================== SHARE MODAL ===================== -->
+<div class="overlay" id="share-overlay">
+  <div class="modal">
+    <button class="close" onclick="closeShare()" aria-label="Закрыть">×</button>
+    <h3>Поделиться кроссвордом</h3>
+    <p class="sub">Ссылка и код содержат весь кроссворд целиком — ничего отдельно сохранять не нужно.</p>
+
+    <div class="share-block">
+      <span>Ссылка</span>
+      <div class="share-row">
+        <input type="text" id="share-link" readonly>
+        <button class="btn small" id="copy-link-btn" onclick="copyLink()">Скопировать</button>
+      </div>
+    </div>
+
+    <div class="share-block">
+      <span>Код кроссворда</span>
+      <div class="share-row">
+        <input type="text" id="share-code" readonly>
+        <button class="btn small" id="copy-code-btn" onclick="copyCode()">Скопировать</button>
+      </div>
+    </div>
+
+    <div class="share-block">
+      <span>Открыть кроссворд по коду</span>
+      <div class="share-row">
+        <input type="text" id="load-code" placeholder="Вставьте код сюда…">
+        <button class="btn small accent" onclick="loadFromCode()">Открыть</button>
+      </div>
+    </div>
+
+    <div class="notice" style="margin-top:4px;">
+      Чтобы ссылка стала публичной, выложите этот HTML-файл в интернет (GitHub Pages, Netlify Drop и т.&nbsp;п.) или откройте его на компьютере получателя. Код кроссворда работает всегда — его можно переслать в любом мессенджере.
+    </div>
+  </div>
+</div>
+
+<!-- ===================== WIN MODAL ===================== -->
+<div class="overlay" id="win-overlay">
+  <div class="modal" style="text-align:center;">
+    <div class="win-emoji">🎉</div>
+    <h3>Готово!</h3>
+    <p class="sub" id="win-sub">Вы разгадали весь кроссворд.</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn accent small" onclick="closeWin()">Отлично</button>
+      <button class="btn ghost small" id="win-new-btn" onclick="closeWin();showView('builder')">Собрать новый</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   СЕТКА — crossword constructor
+   ============================================================ */
+
+/* ---------- preloaded demo: SLII ---------- */
+const DEMO = {
+  title: 'Управление персоналом',
+  entries: [
+    ['МОТИВАЦИЯ','Внутреннее побуждение, заставляющее сотрудника работать с большей отдачей.'],
+    ['АДАПТАЦИЯ','Процесс вхождения нового сотрудника в коллектив и привыкания к работе.'],
+    ['РЕКРУТИНГ','Поиск, привлечение и подбор подходящих кандидатов на работу.'],
+    ['ВАКАНСИЯ','Свободная должность, на которую компания ищет сотрудника.'],
+    ['АТТЕСТАЦИЯ','Периодическая оценка соответствия работника занимаемой должности.'],
+    ['НАСТАВНИК','Опытный работник, который обучает и поддерживает новичка.'],
+    ['ТЕКУЧЕСТЬ','Показатель того, насколько часто сотрудники покидают компанию (… кадров).'],
+    ['ОБУЧЕНИЕ','Систематическое развитие знаний и навыков персонала.'],
+    ['ПРЕМИЯ','Денежное вознаграждение сверх оклада за хорошие результаты.'],
+    ['ОТБОР','Этап подбора, на котором из всех кандидатов выбирают лучшего.']
+  ]
+};
+
+/* ---------- state ---------- */
+const state = {
+  title: '',
+  entries: [],            // {answer, clue}
+  layout: null,           // {grid, rows, cols, placed}
+  cursor: null,           // {r,c,dir}
+  cellMap: null,          // "r,c" -> {input, r, c, words:{H,V}}
+  view: 'builder',
+  playOnly: false         // true when opened via a shared link → no constructor access
+};
+
+/* ============================================================
+   LAYOUT ENGINE
+   ============================================================ */
+function generateLayout(entries, attempts){
+  attempts = attempts || 500;
+  const base = entries
+    .map((e,i)=>({clue:e.clue||'', raw:e.answer, answer:(e.answer||'').toUpperCase().replace(/[^A-ZА-ЯЁ0-9]/gi,''), idx:i}))
+    .filter(w=>w.answer.length>1);
+  if(base.length===0) return null;
+
+  let best=null;
+  for(let a=0;a<attempts;a++){
+    let words=base.slice();
+    if(a===0){ words.sort((x,y)=>y.answer.length-x.answer.length); }
+    else{
+      for(let i=words.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[words[i],words[j]]=[words[j],words[i]];}
+      if(a%2===0) words.sort((x,y)=>y.answer.length-x.answer.length);
+    }
+    const res=attempt(words);
+    if(!best || res.score>best.score) best=res;
+    if(best.placedCount===base.length && best.disconnected===0 && a>40) { /* keep improving a bit */ }
+  }
+  return finalize(best.placed, base.length);
+}
+
+function attempt(words){
+  const cells={}, placed=[];
+  const key=(r,c)=>r+','+c;
+  function canPlace(word,r,c,dir){
+    const dr=dir==='V'?1:0, dc=dir==='H'?1:0; let crossings=0;
+    if(cells[key(r-dr,c-dc)]!==undefined) return null;
+    if(cells[key(r+dr*word.length,c+dc*word.length)]!==undefined) return null;
+    for(let i=0;i<word.length;i++){
+      const rr=r+dr*i, cc=c+dc*i, ex=cells[key(rr,cc)];
+      if(ex!==undefined){ if(ex!==word[i]) return null; crossings++; }
+      else{
+        let n1,n2;
+        if(dir==='H'){n1=cells[key(rr-1,cc)];n2=cells[key(rr+1,cc)];}
+        else{n1=cells[key(rr,cc-1)];n2=cells[key(rr,cc+1)];}
+        if(n1!==undefined||n2!==undefined) return null;
+      }
+    }
+    if(placed.length>0 && crossings===0) return null;
+    return crossings;
+  }
+  function put(w,r,c,dir,cross){
+    const dr=dir==='V'?1:0, dc=dir==='H'?1:0;
+    for(let i=0;i<w.answer.length;i++) cells[key(r+dr*i,c+dc*i)]=w.answer[i];
+    placed.push({answer:w.answer, clue:w.clue, raw:w.raw, r, c, dir, crossings:cross||0});
+  }
+  put(words[0],0,0,'H',0);
+  let disconnected=0;
+  for(let w=1;w<words.length;w++){
+    const word=words[w]; let best=null,bestScore=-1;
+    for(let i=0;i<word.answer.length;i++){
+      const ch=word.answer[i];
+      for(const k in cells){
+        if(cells[k]!==ch) continue;
+        const p=k.split(','); const r=+p[0], c=+p[1];
+        for(const dir of ['H','V']){
+          const sr=r-(dir==='V'?i:0), sc=c-(dir==='H'?i:0);
+          const sc2=canPlace(word.answer,sr,sc,dir);
+          if(sc2!==null && sc2>bestScore){bestScore=sc2;best={r:sr,c:sc,dir,cross:sc2};}
+        }
+      }
+    }
+    if(best) put(word,best.r,best.c,best.dir,best.cross);
+    else{ let maxR=0; for(const k in cells) maxR=Math.max(maxR,+k.split(',')[0]); put(word,maxR+2,0,'H',0); disconnected++; }
+  }
+  let minR=Infinity,minC=Infinity,maxR=-Infinity,maxC=-Infinity,totalCross=0;
+  for(const k in cells){const p=k.split(',');const r=+p[0],c=+p[1];minR=Math.min(minR,r);minC=Math.min(minC,c);maxR=Math.max(maxR,r);maxC=Math.max(maxC,c);}
+  placed.forEach(p=>totalCross+=p.crossings);
+  const rows=maxR-minR+1, cols=maxC-minC+1, area=rows*cols;
+  const score=placed.length*100000 - disconnected*50000 + totalCross*120 - area;
+  return {placed, minR, minC, score, placedCount:placed.length, disconnected};
+}
+
+function finalize(placed, total){
+  let minR=Infinity,minC=Infinity,maxR=-Infinity,maxC=-Infinity;
+  const cells={};
+  placed.forEach(p=>{
+    const dr=p.dir==='V'?1:0, dc=p.dir==='H'?1:0;
+    for(let i=0;i<p.answer.length;i++){
+      const r=p.r+dr*i, c=p.c+dc*i; cells[r+','+c]=p.answer[i];
+      minR=Math.min(minR,r);minC=Math.min(minC,c);maxR=Math.max(maxR,r);maxC=Math.max(maxC,c);
+    }
+  });
+  const rows=maxR-minR+1, cols=maxC-minC+1;
+  const grid=Array.from({length:rows},()=>Array(cols).fill(null));
+  for(const k in cells){const p=k.split(',');grid[(+p[0])-minR][(+p[1])-minC]=cells[k];}
+  placed.forEach(p=>{p.r-=minR;p.c-=minC;});
+
+  // numbering in reading order
+  const numAt={}; let n=0;
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    if(!grid[r][c]) continue;
+    const aStart=(c===0||!grid[r][c-1])&&(c+1<cols&&grid[r][c+1]);
+    const dStart=(r===0||!grid[r-1][c])&&(r+1<rows&&grid[r+1][c]);
+    if(aStart||dStart){n++;numAt[r+','+c]=n;}
+  }
+  placed.forEach(p=>{p.number=numAt[p.r+','+p.c];});
+  placed.sort((a,b)=>(a.number-b.number)||(a.dir==='H'?-1:1));
+
+  // A word is "disconnected" only if none of its cells are shared with another
+  // word. (Placement-time crossings can't be used here: the first-placed word
+  // always reads zero even though later words cross into it.)
+  const cover={};
+  placed.forEach(p=>{const dr=p.dir==='V'?1:0,dc=p.dir==='H'?1:0;for(let i=0;i<p.answer.length;i++){const k=(p.r+dr*i)+','+(p.c+dc*i);cover[k]=(cover[k]||0)+1;}});
+  let disconnected=0;
+  placed.forEach(p=>{const dr=p.dir==='V'?1:0,dc=p.dir==='H'?1:0;let shares=false;for(let i=0;i<p.answer.length;i++){if(cover[(p.r+dr*i)+','+(p.c+dc*i)]>=2){shares=true;break;}}if(!shares&&placed.length>1)disconnected++;});
+  return {grid, rows, cols, placed, total, placedCount:placed.length, disconnected};
+}
+
+/* ============================================================
+   BUILDER UI
+   ============================================================ */
+function renderRows(){
+  const host=document.getElementById('rows'); host.innerHTML='';
+  state.entries.forEach((e,i)=>{
+    const row=document.createElement('div'); row.className='row';
+    row.innerHTML=
+      '<div class="num">'+(i+1)+'</div>'+
+      '<input type="text" class="ans" value="'+esc(e.answer)+'" placeholder="СЛОВО" aria-label="Ответ '+(i+1)+'">'+
+      '<input type="text" class="clue" value="'+esc(e.clue)+'" placeholder="Текст подсказки…" aria-label="Подсказка '+(i+1)+'">'+
+      '<button class="del" aria-label="Удалить">×</button>';
+    const [ans,clue]=row.querySelectorAll('input');
+    ans.addEventListener('input',()=>{state.entries[i].answer=ans.value;});
+    clue.addEventListener('input',()=>{state.entries[i].clue=clue.value;});
+    row.querySelector('.del').addEventListener('click',()=>{state.entries.splice(i,1);renderRows();});
+    host.appendChild(row);
+  });
+}
+function addRow(){ state.entries.push({answer:'',clue:''}); renderRows();
+  const inputs=document.querySelectorAll('#rows .ans'); if(inputs.length) inputs[inputs.length-1].focus(); }
+
+function onBuild(){
+  state.title=document.getElementById('title-input').value.trim();
+  const valid=state.entries.filter(e=>(e.answer||'').replace(/[^A-ZА-ЯЁ0-9]/gi,'').length>1);
+  if(valid.length<2){ showMsg('Добавьте хотя бы два слова с ответами от двух букв.','err'); return; }
+  const layout=generateLayout(state.entries);
+  if(!layout){ showMsg('Не получилось собрать сетку. Проверьте ответы.','err'); return; }
+  hideMsg();
+  state.layout=layout;
+  renderPlayer();
+  showView('player');
+  updateHash();
+  if(layout.disconnected>0){
+    setTimeout(()=>showMsg(layout.disconnected+' слов(а) не пересеклись с другими. Кроссворд собран, но плотнее будет, если у ответов появятся общие буквы.','warn'),50);
+  }
+}
+
+function showMsg(text,type){const m=document.getElementById('builder-msg');m.textContent=text;m.className='msg show'+(type==='warn'?' warn':'');}
+function hideMsg(){document.getElementById('builder-msg').className='msg';}
+
+/* ============================================================
+   PLAYER UI
+   ============================================================ */
+function renderPlayer(){
+  const L=state.layout;
+  document.getElementById('play-title').textContent=state.title||'Кроссворд';
+
+  // grid
+  const gridEl=document.getElementById('grid');
+  gridEl.innerHTML='';
+  gridEl.style.gridTemplateColumns='repeat('+L.cols+', var(--cell))';
+  gridEl.style.gridTemplateRows='repeat('+L.rows+', var(--cell))';
+
+  // map start-cell -> number for badges
+  const numAt={}; L.placed.forEach(p=>{numAt[p.r+','+p.c]=p.number;});
+  // map each cell to the words covering it
+  const cover={}; // "r,c" -> {H:word, V:word}
+  L.placed.forEach(p=>{
+    const dr=p.dir==='V'?1:0, dc=p.dir==='H'?1:0;
+    for(let i=0;i<p.answer.length;i++){
+      const k=(p.r+dr*i)+','+(p.c+dc*i);
+      if(!cover[k]) cover[k]={};
+      cover[k][p.dir]=p;
+    }
+  });
+
+  state.cellMap={};
+  for(let r=0;r<L.rows;r++)for(let c=0;c<L.cols;c++){
+    const cellEl=document.createElement('div');
+    if(!L.grid[r][c]){ cellEl.className='cell block'; gridEl.appendChild(cellEl); continue; }
+    cellEl.className='cell letter';
+    const k=r+','+c;
+    if(numAt[k]!==undefined){const b=document.createElement('span');b.className='lnum';b.textContent=numAt[k];cellEl.appendChild(b);}
+    const inp=document.createElement('input');
+    inp.maxLength=1; inp.autocomplete='off'; inp.autocapitalize='characters'; inp.spellcheck=false; inp.inputMode='text';
+    inp.dataset.r=r; inp.dataset.c=c; inp.dataset.sol=L.grid[r][c];
+    inp.addEventListener('focus',()=>onCellFocus(r,c));
+    inp.addEventListener('click',()=>onCellClick(r,c));
+    inp.addEventListener('input',()=>onInput(r,c,inp));
+    inp.addEventListener('keydown',(e)=>onKey(e,r,c));
+    cellEl.appendChild(inp);
+    gridEl.appendChild(cellEl);
+    state.cellMap[k]={el:cellEl, input:inp, r, c, words:cover[k]||{}};
+  }
+
+  sizeGrid();
+
+  // clues
+  const across=L.placed.filter(p=>p.dir==='H').sort((a,b)=>a.number-b.number);
+  const down=L.placed.filter(p=>p.dir==='V').sort((a,b)=>a.number-b.number);
+  renderClueList('clues-across',across);
+  renderClueList('clues-down',down);
+
+  updateProgress();
+  // auto-select first clue
+  if(L.placed.length){ const f=L.placed[0]; selectWord(f); }
+}
+
+function renderClueList(id,list){
+  const ol=document.getElementById(id); ol.innerHTML='';
+  list.forEach(p=>{
+    const li=document.createElement('li');
+    li.className='clue-item'; li.dataset.key=p.number+p.dir;
+    li.innerHTML='<span class="cnum">'+p.number+'</span><span>'+esc(p.clue||'—')+'</span>';
+    li.addEventListener('click',()=>selectWord(p));
+    ol.appendChild(li);
+  });
+}
+
+function sizeGrid(){
+  const L=state.layout; if(!L) return;
+  const shell=document.querySelector('.grid-shell');
+  const avail=shell.clientWidth-34;
+  let cell=Math.floor(avail/L.cols);
+  cell=Math.max(20,Math.min(46,cell));
+  document.documentElement.style.setProperty('--cell',cell+'px');
+}
+window.addEventListener('resize',()=>{ if(state.view==='player') sizeGrid(); });
+
+/* ----- selection & navigation ----- */
+function wordCells(p){
+  const dr=p.dir==='V'?1:0, dc=p.dir==='H'?1:0, out=[];
+  for(let i=0;i<p.answer.length;i++) out.push([p.r+dr*i,p.c+dc*i]);
+  return out;
+}
+function clearHighlights(){
+  document.querySelectorAll('.cell.hl').forEach(e=>e.classList.remove('hl'));
+  document.querySelectorAll('.cell.cursor').forEach(e=>e.classList.remove('cursor'));
+  document.querySelectorAll('.clue-item.active').forEach(e=>e.classList.remove('active'));
+}
+function selectWord(p, atIndex){
+  clearHighlights();
+  state.cursor={word:p, dir:p.dir};
+  wordCells(p).forEach(([r,c])=>{const m=state.cellMap[r+','+c]; if(m) m.el.classList.add('hl');});
+  const idx=(typeof atIndex==='number')?atIndex:firstEmptyIndex(p);
+  const [cr,cc]=wordCells(p)[idx];
+  setCursor(cr,cc);
+  const li=document.querySelector('.clue-item[data-key="'+p.number+p.dir+'"]');
+  if(li){li.classList.add('active'); li.scrollIntoView({block:'nearest'});}
+  const m=state.cellMap[cr+','+cc]; if(m) m.input.focus({preventScroll:true});
+}
+function firstEmptyIndex(p){
+  const cs=wordCells(p);
+  for(let i=0;i<cs.length;i++){const m=state.cellMap[cs[i][0]+','+cs[i][1]]; if(m&&!m.input.value) return i;}
+  return 0;
+}
+function setCursor(r,c){
+  document.querySelectorAll('.cell.cursor').forEach(e=>e.classList.remove('cursor'));
+  const m=state.cellMap[r+','+c]; if(m) m.el.classList.add('cursor');
+  state.cursorRC={r,c};
+}
+function onCellFocus(r,c){ /* highlight handled on click/select */ }
+function onCellClick(r,c){
+  const m=state.cellMap[r+','+c]; if(!m) return;
+  const has=m.words; const cur=state.cursor;
+  let dir;
+  // toggle direction if clicking the current cell again and both exist
+  if(state.cursorRC && state.cursorRC.r===r && state.cursorRC.c===c && has.H && has.V){
+    dir=(cur && cur.dir==='H')?'V':'H';
+  } else {
+    dir=(cur && has[cur.dir])?cur.dir:(has.H?'H':'V');
+  }
+  const p=has[dir]; if(!p) return;
+  const idx=wordCells(p).findIndex(([rr,cc])=>rr===r&&cc===c);
+  selectWord(p, idx);
+}
+function onInput(r,c,inp){
+  let v=inp.value; if(v.length>1) v=v.slice(-1);
+  inp.value=v.toUpperCase();
+  const m=state.cellMap[r+','+c]; if(m){m.el.classList.remove('good','bad');}
+  updateProgress();
+  if(inp.value) moveNext(r,c);
+  checkWin();
+}
+function onKey(e,r,c){
+  const m=state.cellMap[r+','+c]; if(!m) return;
+  if(e.key==='Backspace'){
+    e.preventDefault();
+    if(m.input.value){ m.input.value=''; m.el.classList.remove('good','bad'); updateProgress(); }
+    else { movePrev(r,c); }
+    return;
+  }
+  if(e.key===' '){ e.preventDefault(); toggleDir(r,c); return; }
+  if(e.key.startsWith('Arrow')){
+    e.preventDefault();
+    const map={ArrowLeft:[0,-1,'H'],ArrowRight:[0,1,'H'],ArrowUp:[-1,0,'V'],ArrowDown:[1,0,'V']};
+    const [dr,dc]=map[e.key]; stepTo(r+dr,c+dc,map[e.key][2]);
+    return;
+  }
+  if(e.key==='Enter' || e.key==='Tab'){ e.preventDefault(); nextWord(e.shiftKey); }
+}
+function toggleDir(r,c){
+  const m=state.cellMap[r+','+c]; if(!m) return;
+  if(m.words.H&&m.words.V){
+    const dir=(state.cursor&&state.cursor.dir==='H')?'V':'H';
+    const p=m.words[dir]; const idx=wordCells(p).findIndex(([rr,cc])=>rr===r&&cc===c);
+    selectWord(p,idx);
+  }
+}
+function moveNext(r,c){
+  const p=state.cursor&&state.cursor.word; if(!p) return;
+  const cs=wordCells(p); const i=cs.findIndex(([rr,cc])=>rr===r&&cc===c);
+  if(i>=0&&i<cs.length-1){ const [nr,nc]=cs[i+1]; setCursor(nr,nc); state.cellMap[nr+','+nc].input.focus({preventScroll:true}); }
+}
+function movePrev(r,c){
+  const p=state.cursor&&state.cursor.word; if(!p) return;
+  const cs=wordCells(p); const i=cs.findIndex(([rr,cc])=>rr===r&&cc===c);
+  if(i>0){ const [pr,pc]=cs[i-1]; const pm=state.cellMap[pr+','+pc]; pm.input.value=''; pm.el.classList.remove('good','bad'); setCursor(pr,pc); pm.input.focus({preventScroll:true}); updateProgress(); }
+}
+function stepTo(r,c,dir){
+  const m=state.cellMap[r+','+c]; if(!m) return;
+  const p=m.words[dir]||m.words.H||m.words.V; if(!p) return;
+  const idx=wordCells(p).findIndex(([rr,cc])=>rr===r&&cc===c);
+  selectWord(p, idx>=0?idx:0);
+}
+function nextWord(back){
+  const L=state.layout; const all=L.placed; const cur=state.cursor&&state.cursor.word;
+  let i=all.indexOf(cur); i=back?(i-1+all.length)%all.length:(i+1)%all.length;
+  selectWord(all[i]);
+}
+
+/* ----- check / reveal / reset ----- */
+function checkAll(){
+  let any=false;
+  for(const k in state.cellMap){
+    const m=state.cellMap[k]; const v=m.input.value.toUpperCase();
+    m.el.classList.remove('good','bad');
+    if(!v) continue; any=true;
+    if(v===m.input.dataset.sol) m.el.classList.add('good'); else m.el.classList.add('bad');
+  }
+  if(!any) showToast();
+}
+function revealWord(){
+  const p=state.cursor&&state.cursor.word; if(!p) return;
+  wordCells(p).forEach(([r,c])=>{const m=state.cellMap[r+','+c]; m.input.value=m.input.dataset.sol; m.el.classList.remove('bad'); m.el.classList.add('good');});
+  updateProgress(); checkWin();
+}
+function resetGrid(){
+  for(const k in state.cellMap){const m=state.cellMap[k]; m.input.value=''; m.el.classList.remove('good','bad');}
+  updateProgress();
+  document.querySelectorAll('.clue-item.solved').forEach(e=>e.classList.remove('solved'));
+}
+
+/* ----- progress & win ----- */
+function isWordSolved(p){
+  return wordCells(p).every(([r,c])=>{const m=state.cellMap[r+','+c]; return m.input.value.toUpperCase()===m.input.dataset.sol;});
+}
+function updateProgress(){
+  const L=state.layout; if(!L) return;
+  let solved=0;
+  L.placed.forEach(p=>{
+    const li=document.querySelector('.clue-item[data-key="'+p.number+p.dir+'"]');
+    if(isWordSolved(p)){ solved++; if(li) li.classList.add('solved'); }
+    else if(li) li.classList.remove('solved');
+  });
+  const total=L.placed.length;
+  document.getElementById('progress-text').textContent=solved+' из '+total;
+  document.getElementById('progress-bar').style.width=(total?Math.round(solved/total*100):0)+'%';
+}
+let won=false;
+function checkWin(){
+  const L=state.layout; if(!L) return;
+  const all=L.placed.every(isWordSolved);
+  if(all && !won){ won=true; openWin(); }
+  if(!all) won=false;
+}
+function openWin(){
+  document.getElementById('win-sub').textContent='Вы разгадали кроссворд «'+(state.title||'без названия')+'».';
+  document.getElementById('win-overlay').classList.add('open');
+}
+function closeWin(){document.getElementById('win-overlay').classList.remove('open');}
+
+/* ============================================================
+   VIEW SWITCH
+   ============================================================ */
+function showView(v){
+  if(state.playOnly && v==='builder') return;   // shared link: constructor is locked
+  state.view=v;
+  document.getElementById('builder').classList.toggle('hidden',v!=='builder');
+  document.getElementById('player').classList.toggle('active',v==='player');
+  document.getElementById('tab-build').setAttribute('aria-selected',v==='builder');
+  document.getElementById('tab-play').setAttribute('aria-selected',v==='player');
+  if(v==='player'){
+    if(!state.layout){ // build on the fly if user clicks Играть first
+      onBuild(); return;
+    }
+    sizeGrid();
+  }
+}
+
+/* ============================================================
+   SHARE / ENCODE
+   ============================================================ */
+function b64urlEncode(str){
+  const bytes=new TextEncoder().encode(str); let bin='';
+  bytes.forEach(b=>bin+=String.fromCharCode(b));
+  return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function b64urlDecode(s){
+  s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='=';
+  const bin=atob(s); const bytes=Uint8Array.from(bin,c=>c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+function encodePuzzle(){
+  const payload={t:state.title, e:state.entries.filter(e=>(e.answer||'').trim()).map(e=>[e.answer,e.clue])};
+  return b64urlEncode(JSON.stringify(payload));
+}
+function decodePuzzle(code){
+  const obj=JSON.parse(b64urlDecode(code));
+  return {title:obj.t||'', entries:(obj.e||[]).map(a=>({answer:a[0]||'', clue:a[1]||''}))};
+}
+function updateHash(){
+  try{ history.replaceState(null,'','#p='+encodePuzzle()); }catch(e){ location.hash='p='+encodePuzzle(); }
+}
+function currentLink(){
+  const base=location.href.split('#')[0];
+  return base+'#p='+encodePuzzle();
+}
+function openShare(){
+  document.getElementById('share-link').value=currentLink();
+  document.getElementById('share-code').value=encodePuzzle();
+  document.getElementById('share-overlay').classList.add('open');
+}
+function closeShare(){document.getElementById('share-overlay').classList.remove('open');}
+function copyTo(text,btn){
+  const done=()=>{const t=btn.textContent;btn.textContent='Скопировано!';setTimeout(()=>btn.textContent=t,1400);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done).catch(()=>fallbackCopy(text,done));}
+  else fallbackCopy(text,done);
+}
+function fallbackCopy(text,done){
+  const ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';
+  document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);done();
+}
+function copyLink(){copyTo(currentLink(),document.getElementById('copy-link-btn'));}
+function copyCode(){copyTo(encodePuzzle(),document.getElementById('copy-code-btn'));}
+function loadFromCode(){
+  const code=document.getElementById('load-code').value.trim(); if(!code) return;
+  try{
+    const p=decodePuzzle(code);
+    if(!p.entries.length) throw new Error('empty');
+    state.title=p.title; state.entries=p.entries;
+    if(!state.playOnly){ document.getElementById('title-input').value=p.title; renderRows(); }
+    const layout=generateLayout(state.entries); if(!layout) throw new Error('layout');
+    state.layout=layout; won=false; renderPlayer(); closeShare(); showView('player'); updateHash();
+  }catch(e){ alert('Не удалось прочитать код. Проверьте, что он скопирован целиком.'); }
+}
+
+/* ----- load from URL hash on open ----- */
+function loadFromHash(){
+  const m=location.hash.match(/p=([^&]+)/);
+  if(!m) return false;
+  try{
+    const p=decodePuzzle(m[1]);
+    if(!p.entries.length) return false;
+    state.title=p.title; state.entries=p.entries;
+    if(!state.playOnly){ document.getElementById('title-input').value=p.title; renderRows(); }
+    const layout=generateLayout(state.entries); if(!layout) return false;
+    state.layout=layout; won=false; renderPlayer(); showView('player');
+    return true;
+  }catch(e){ return false; }
+}
+
+/* ============================================================
+   HELPERS + INIT
+   ============================================================ */
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function showToast(){const m=document.getElementById('builder-msg');/* no-op for player */}
+
+// close modals on backdrop click / Esc
+['share-overlay','win-overlay'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id) e.currentTarget.classList.remove('open'); });
+});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){closeShare();closeWin();} });
+
+function applyPlayOnly(){
+  // Opened from a shared link: strip every path back into the constructor.
+  const tabs=document.querySelector('.tabs'); if(tabs) tabs.style.display='none';
+  const edit=document.getElementById('edit-btn'); if(edit) edit.style.display='none';
+  const winNew=document.getElementById('win-new-btn'); if(winNew) winNew.style.display='none';
+}
+
+function init(){
+  // A shared link carries the puzzle in the URL hash. When present, lock the app
+  // to play-only so recipients can solve but never reach the constructor.
+  if(location.hash.match(/p=([^&]+)/)){
+    state.playOnly=true;
+    if(loadFromHash()){ applyPlayOnly(); return; }
+    state.playOnly=false;            // unreadable code → fall back to the full builder
+  }
+  // otherwise load the SLII demo into the builder
+  state.title=DEMO.title;
+  state.entries=DEMO.entries.map(a=>({answer:a[0],clue:a[1]}));
+  document.getElementById('title-input').value=state.title;
+  renderRows();
+  // pre-build the demo layout so "Играть" works instantly
+  state.layout=generateLayout(state.entries);
+}
+init();
+</script>
+</body>
+</html>
